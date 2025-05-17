@@ -1,17 +1,17 @@
-# Julia Container for MultiPL-BCB
+# Julia Container for BigCodeBench-MultiPL
 
 This is a container that runs Julia programs. It receives a program and its test
 suite over standard input, runs it, and prints the result of execution to
 standard output. For example, an input line must have the following fields:
 
 ```javascript
-{"program": str, "test_suite": str }
+{"task_id": str,"program": str, "test_suite": str }
 ```
 
 And an output line will have the following fields:
 
 ```javascript
-{ "exit_code": int, "timeout": bool "stdout": str, "stderr": str }
+{ "task_id": str"exit_code": int, "timeout": bool "stdout": str, "stderr": str }
 ```
 
 But, here is what is peculiar: **the test suite must be written in Python**,

@@ -13,4 +13,4 @@
 # The constant 20 runs 20 in parallel. Adjust it as appropriate.
 COMPLETIONS_JSONL=$1
 LINE_NUMBER=$2
-sed -n "${LINE_NUMBER}p" ${COMPLETIONS_JSONL} | podman run --rm -i ghcr.io/arjun/stdio_jl
+sed -n "${LINE_NUMBER}p" ${COMPLETIONS_JSONL} | podman run --rm -i ghcr.io/arjunguha/bcb_multipl-jl

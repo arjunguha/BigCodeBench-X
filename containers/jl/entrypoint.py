@@ -23,12 +23,12 @@ import json
 import sys
 
 
-def error(message):
-    json.dump({"error": "JSONDecodeError", "message": message}, sys.stdout)
+def error(key: str, problem, message: str):
+    json.dump({ key: problem[key], "error": "JSONDecodeError", "message": message}, sys.stdout)
     print("\n", flush=True)
 
 
-def main_with_args(timeout_seconds: int):
+def main_with_args(*, timeout_seconds: int, key: str):
     while True:
         try:
             problem_line = input()
@@ -38,24 +38,24 @@ def main_with_args(timeout_seconds: int):
         try:
             problem = json.loads(problem_line)
         except json.JSONDecodeError as exn:
-            error(str(exn))
+            error(key, problem, str(exn))
             continue
 
         if "program" not in problem:
-            error("program field is missing")
+            error(key, problem, "program field is missing")
             continue
         if "test_suite" not in problem:
-            error("test_suite field is missing")
+            error(key, problem, "test_suite field is missing")
             continue
 
         program = problem["program"]
         if type(program) != str:
-            error("program must a string")
+            error(key, problem, "program must a string")
             continue
 
         test_suite = problem["test_suite"]
         if type(test_suite) != str:
-            error("test_suite must be a string")
+            error(key, problem, "test_suite must be a string")
             continue
 
         with tempfile.TemporaryDirectory() as dir_name:
@@ -67,13 +67,14 @@ def main_with_args(timeout_seconds: int):
                 ["/usr/bin/python3", "/driver.py", dir_name],
                 timeout_seconds=timeout_seconds,
             )
-            json.dump(vars(result), sys.stdout)
+            json.dump({ key: problem[key], **vars(result) }, sys.stdout)
             print(flush=True)
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--timeout-seconds", type=int, default=15)
+    parser.add_argument("--key", type=str, default="task_id")
     args = parser.parse_args()
     main_with_args(**vars(args))
 
