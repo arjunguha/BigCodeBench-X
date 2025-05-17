@@ -50,6 +50,11 @@ def incremental_parallel(
     batch_size: int,
     use_tqdm: bool = True,
 ) -> Iterable[Optional[dspy.Prediction]]:
+    """
+    Applies module to the list of examples in batches, but returns the results
+    incrementally. I am a little surprised that this does not seem to be
+    built-in to DSPy.
+    """
     # Create an instance of Parallel
     parallel_executor = dspy.Parallel(
         num_threads=batch_size,

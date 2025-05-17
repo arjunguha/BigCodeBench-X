@@ -1,5 +1,5 @@
 import dspy
-from typing import Iterable, List
+from typing import Iterable, List, Optional
 from bcb_reader import BigCodeBenchProblem, load_bigcodebench
 from bcb_multipl_util import incremental_parallel, extract_code_from_markdown
 import argparse
@@ -53,6 +53,8 @@ def prepare_dataset(
 
 
 def main_with_args(
+    *,
+    limit: Optional[int],
     model_name: str,
     temperature: float,
     max_tokens: int,
@@ -66,6 +68,8 @@ def main_with_args(
 
     translator = dspy.ChainOfThought(TranslateProblem)
     problems = list(load_bigcodebench())
+    if limit is not None:
+        problems = problems[:limit]
     input_examples = prepare_dataset(problems)
 
     with output_path.open("w") as f:
@@ -99,6 +103,7 @@ def main():
         help="The model name in DSPy format",
     )
     parser.add_argument("--temperature", type=float, default=1.0)
+    parser.add_argument("--limit", type=int, default=None, help="Limit the number of problems to process (debugging)")
     parser.add_argument("--max-tokens", type=int, default=20_000)
     parser.add_argument("--batch-size", type=int, default=20)
     parser.add_argument("--output-path", type=Path, required=True)

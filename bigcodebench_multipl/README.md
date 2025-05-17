@@ -2,6 +2,16 @@ This purpose of this project is to turn the BigCodeBench problems into
 problems that receive input and output using standard I/O. This is intended to
 be an intermediate step before making BigCodeBench language agnostic.
 
+## Step 0: Installation and Configuration
+
+1. [FILL] dependencies, etc. Uv or not.
+
+2. You must also configure the LLM that you intend to **Before you begin, you
+   must configure the LLM that you will use. By default, the scripts are setup
+   to use OpenAI models, and you will need to set the `OPENAI_API_KEY`
+   environment variable. However, it is also possible to use other models. Use
+   `--help` with any script to see how to configure the model.
+
 ## Step 1: Transform Problems To Use Standard I/O
 
 1. Use a language model to modify the problems to use standard I/O.
@@ -12,10 +22,7 @@ be an intermediate step before making BigCodeBench language agnostic.
        --output-path unfiltered_stdio.jsonl
    ```
 
-   By default, the script uses o4-mini. You must have the `OPENAI_API_KEY`
-   environment variable set.
-
-   This will produce a JSONL file with the following fields:
+   This will produce a JSONL file where each line has the following fields:
 
    - `task_id`: The original Task ID from BigCodeBench
    - `reasoning`: The model's chain of thought, which may help debug.
@@ -26,16 +33,25 @@ be an intermediate step before making BigCodeBench language agnostic.
    **Manual verification:**: You should now manually review a sample of the 
    edits that the model has made.
 
-2. Filter the output to remove problems that failed by running the test suites:
+   *TODO(arjun):* We should build an application to support this. This
+   code is a good starting point: https://gist.github.com/arjunguha/92e7d0aebbc9b61acb37ef019c97e851.
 
-   ```bash
-   LINES=$(wc -l < unfiltered_stdio.jsonl)
-   parallel --bar -j16 ../containers/py/job.sh unfiltered_stdio.jsonl --program-field  ::: $(seq $LINES) > unfiltered_stdio.results.jsonl
+2. Filter the output to remove problems that failed by running the test suites.
+   First, determine how many problems there are:
+
+   ```
+   wc -l unfiltered_stdio.jsonl
    ```
 
-   Notice I'm using 16 concurrent processes. You probably want ~32GB of memory
-   and 32 cores to run that many safely. You can adjust the `-j` flag as needed.
+   Then, run each problem in the Python container with the code below.
+   Use the number of lines above for `NUM_PROBLEMS`. The flag `-j16` means
+   that we are running 16 containers concurrently. You probably want ~32GB of
+   memory and 32 cores to run that many safely. You can adjust the `-j` flag as
+   needed.
 
+   ```bash
+   parallel --bar -j16 ../containers/py/job.sh unfiltered_stdio.jsonl --program-field  ::: $(seq NUM_PROBLEMS) > unfiltered_stdio.results.jsonl
+   ```
 
 3. Filter out problems that fail to translate:
 

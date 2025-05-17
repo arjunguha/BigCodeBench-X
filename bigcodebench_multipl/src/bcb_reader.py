@@ -1,3 +1,8 @@
+"""
+The module reads and pre-processing the BigCodeBench dataset for the rest of our
+code.
+"""
+
 import datasets
 import ast
 from typing import TypedDict, Generator

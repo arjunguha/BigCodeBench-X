@@ -11,6 +11,20 @@ the test cases. The prompts in BigCodeBench-MultiPL are already language
 neutral. Moreover, all interactions with model-generated code occurs via
 standard I/O, so we can use the same tests for every language.
 
+## Benchmarking a Model
+
+[FILL]
+
+## Adding Support for a New Programming Language
+
+[FILL]
+
+
+## Constructing the Benchmark
+
+See the README in the `bigcodebench_multipl` directory. for instructions on
+how to construct the benchmark.
+
 ## Acknowledgements
 
 
