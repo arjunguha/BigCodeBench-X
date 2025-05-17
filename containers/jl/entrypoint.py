@@ -13,6 +13,7 @@ This program performs the following steps in a loop:
 
 4. Print test execution results to standard output.
 """
+
 from pathlib import Path
 import json
 import tempfile
@@ -63,7 +64,8 @@ def main_with_args(timeout_seconds: int):
             (dir / "tests.py").write_text(test_suite)
 
             result = run(
-                ["/usr/bin/python3", "/driver.py", dir_name], timeout_seconds=timeout_seconds
+                ["/usr/bin/python3", "/driver.py", dir_name],
+                timeout_seconds=timeout_seconds,
             )
             json.dump(vars(result), sys.stdout)
             print(flush=True)

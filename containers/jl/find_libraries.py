@@ -4,13 +4,15 @@ This is a hack to guess the Julia libraries that we need to install.
 Our approach is to see what libraries are used in generated Julia code from
 some model, and then package those in a container.
 """
+
 import argparse
 from pathlib import Path
 import pandas as pd
 from typing import Set
 import warnings
 
-IGNORED = [ "nothing" ]
+IGNORED = ["nothing"]
+
 
 def find_libraries(code: str) -> Set[str]:
     # Instead of trying to be clever with a Regex, we are going to do this
@@ -50,6 +52,7 @@ def main():
     parser.add_argument("output_txt", type=Path)
     args = parser.parse_args()
     main_with_args(args.generations_jsonl, args.output_txt)
+
 
 if __name__ == "__main__":
     main()
