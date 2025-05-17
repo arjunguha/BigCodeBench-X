@@ -1,0 +1,19 @@
+[project]
+name = "bigcodebench-multipl"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Arjun Guha", email = "a.guha@northeastern.edu" }
+]
+requires-python = ">=3.10"
+dependencies = [
+    "datasets>=3.6.0",
+]
+
+[project.scripts]
+bigcodebench-multipl = "bigcodebench_multipl:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
