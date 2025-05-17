@@ -1,7 +1,8 @@
 import dspy
 from typing import Iterable, List, Optional
 from bcb_reader import BigCodeBenchProblem, load_bigcodebench
-from bcb_multipl_util import incremental_parallel, extract_code_from_markdown
+from bcb_multipl_util import extract_code_from_markdown
+from dspy_util import incremental_parallel
 import argparse
 import json
 from pathlib import Path

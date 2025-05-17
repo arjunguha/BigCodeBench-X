@@ -14,6 +14,13 @@ standard I/O, so we can use the same tests for every language.
 
 ## Benchmarking a Model
 
+To follow these directions, you will need:
+
+- Docker or Podman to run containers.
+- A Python environment with `tqdm`, `datasets`, and `litellm` installed.
+- The `parallel` and `jq` tools, which will be available from your Linux package
+  manager.
+
 1. **Generate Completions**: We have a very simple script to generate
    completions. All it  does is add "Solve this problem using *L*" to the prompt
    and then queries an LLM. For example, the following command generates
