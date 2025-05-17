@@ -4,7 +4,8 @@ be an intermediate step before making BigCodeBench language agnostic.
 
 ## Step 0: Installation and Configuration
 
-1. [FILL] dependencies, etc. Uv or not.
+1. See `pyproject.toml` for the dependencies. We rely on HF Datasets
+   and DSPy. You can use `uv` if you wish.
 
 2. You must also configure the LLM that you intend to **Before you begin, you
    must configure the LLM that you will use. By default, the scripts are setup
@@ -43,21 +44,30 @@ be an intermediate step before making BigCodeBench language agnostic.
    wc -l unfiltered_stdio.jsonl
    ```
 
-   Then, run each problem in the Python container with the code below.
+   Now, run each problem in the Python container with the code below.
    Use the number of lines above for `NUM_PROBLEMS`. The flag `-j16` means
    that we are running 16 containers concurrently. You probably want ~32GB of
    memory and 32 cores to run that many safely. You can adjust the `-j` flag as
    needed.
 
    ```bash
-   parallel --bar -j16 ../containers/py/job.sh unfiltered_stdio.jsonl --program-field  ::: $(seq NUM_PROBLEMS) > unfiltered_stdio.results.jsonl
+   parallel --bar -j16 \
+       ../containers/py/job.sh unfiltered_stdio.jsonl \
+       ::: $(seq NUM_PROBLEMS) > unfiltered_stdio.results.jsonl
    ```
+
+   You will see that `unfiltered_stdio.results.jsonl` is a JSONL file that has
+   the execution results for each problem (the fields are `exit_code`, `timeout`,
+   `stderr`, and `stdout`). As a rule of thumb, if all problems fail, succeed,
+   or timeout, the container is not working. You should see a few timeouts,
+   a few successes, and a few failures.
 
 3. Filter out problems that fail to translate:
 
    ```bash
-   python3 src/apply_exec_filter.py unfiltered_stdio.jsonl unfiltered_stdio.results.jsonl --output-file filtered_stdio.jsonl
-   wc -l filtered_stdio_bcb.jsonl
+   python3 src/apply_exec_filter.py \
+       unfiltered_stdio.jsonl unfiltered_stdio.results.jsonl \
+       --output-file filtered_stdio.jsonl
    ```
 
    You can include failed problems by adding the `--include-failed` flag.
@@ -78,18 +88,13 @@ they are still Python programming tasks.
 
    ```bash
    python3 src/make_pl_agnostic_problem.py \
-       --batch-size 50 \
-       --input-problems filtered_stdio.jsonl \
-       --output-problems unfiltered_agnostic.jsonl \
+       --batch-size 50 filtered_stdio.jsonl benchmark.jsonl
    ```
 
-   By default, the script uses o4-mini. You must have the `OPENAI_API_KEY`
-   environment variable set.
-
-   This will produce a JSONL file with the following fields:
+   By default, the script uses GPT-4.1-mini. This will produce a JSONL file with
+   the following fields:
 
    - `task_id`: The original Task ID from BigCodeBench
-   - `reasoning`: The model's chain of thought, which may help debug.
    - `program`: The Python solution to the problem
    - `test_suite`: The Python test suite for the problem.
    - `prompt`: The modified, language-neutral problem statement.
@@ -98,12 +103,9 @@ they are still Python programming tasks.
    edits that the model has made to the prompts. Ask yourself if the
    program and test suite still make sense with the edited prompt.
 
-At this point, the file `unfiltered_agnostic.jsonl` is a benchmark.
-All you need to do at this point is run the prompts through an LLM with a
+At this point, the file `benchmark.jsonl` is the language agnostic benchmark.
+All you need to do is run the prompts through an LLM with a
 prefix/suffix that effectively says "solve the problem in language *L*".
 
-You probably want to upload this dataset to the Hugging Face Hub to benchmark
-models on various languages. 
-
-
-## Step 3:
+We have a simple benchmarking script that is described in the `README.md`
+at the repository root.

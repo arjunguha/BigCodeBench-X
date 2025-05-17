@@ -5,6 +5,10 @@ from pathlib import Path
 
 
 def load_jsonl_ignoring_errors(path: str):
+    """
+    We seem to get JSON decode errors on some lines from the container, which
+    is why
+    """
     with Path(path).open("r") as f:
         for line_num, line in enumerate(f):
             try:
@@ -21,16 +25,8 @@ def main_with_args(file1: str, file2: str, include_failed: bool, output_file: st
 
     if not include_failed:
         df = df[df["exit_code"] == 0]
-        df = df.drop(columns=["exit_code", "stderr", "stdout"])
-        df = df.drop(columns=["reasoning", "error"])
-
-    df = df.rename(
-        columns={
-            "result_problem_statement": "prompt",
-            "result_program": "gold_solution",
-            "result_test_suite": "hidden_test_suite",
-        }
-    )
+        df = df.drop(columns=["exit_code", "stderr", "stdout", "timeout"])
+        df = df.drop(columns=["reasoning"])
 
     df.to_json(output_file, lines=True, orient="records")
 

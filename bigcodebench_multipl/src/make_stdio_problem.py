@@ -79,7 +79,10 @@ def main_with_args(
             if prediction is None:
                 json.dump({"task_id": problem["task_id"], "error": "No prediction"}, f)
             else:
-                the_dict = { "task_id": problem["task_id"], "reasoning": prediction.reasoning }
+                the_dict = {
+                    "task_id": problem["task_id"],
+                    "reasoning": prediction.reasoning,
+                }
                 the_dict["prompt"] = prediction.result_problem_statement
                 the_dict["program"] = (
                     extract_code_from_markdown(prediction.result_program)
@@ -103,7 +106,12 @@ def main():
         help="The model name in DSPy format",
     )
     parser.add_argument("--temperature", type=float, default=1.0)
-    parser.add_argument("--limit", type=int, default=None, help="Limit the number of problems to process (debugging)")
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Limit the number of problems to process (debugging)",
+    )
     parser.add_argument("--max-tokens", type=int, default=20_000)
     parser.add_argument("--batch-size", type=int, default=20)
     parser.add_argument("--output-path", type=Path, required=True)

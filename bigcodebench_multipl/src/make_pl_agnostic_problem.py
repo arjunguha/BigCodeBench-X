@@ -7,11 +7,13 @@ other fields unchanged.
 """
 
 import dspy
-from dspy_util import incremental_parallel
-from prl_ml.datasets.dataset_spec import DatasetSpec
-import datasets
+from bcb_multipl_util import incremental_parallel
+import json
 import warnings
 import argparse
+import pandas as pd
+from pathlib import Path
+import os
 
 
 class PythonStdioToAgnostic(dspy.Signature):
@@ -36,7 +38,7 @@ def main_loop(
     batch_size: int,
     input_field: str,
     output_field: str,
-    input_dataset: datasets.Dataset,
+    input_dataset,
 ):
     input_examples = [
         dspy.Example(python_problem=item[input_field]).with_inputs("python_problem")
@@ -48,32 +50,36 @@ def main_loop(
         incremental_parallel(python_stdio_to_agnostic, input_examples, batch_size),
     ):
         if prediction is None:
-            warnings.warn(f"No prediction for {input_item[input_field]}")
+            warnings.warn(f"No prediction for {input_item['task_id']}")
             continue
         yield {**input_item, output_field: prediction.neutral_problem}
 
 
 def main_with_args(
+    *,
     model_name: str,
     temperature: float,
     max_tokens: int,
     batch_size: int,
     input_field: str,
     output_field: str,
-    input_dataset_spec_str: str,
-    output_dataset_spec_str: str,
+    input_path: str,
+    output_path: Path,
 ):
 
     lm = dspy.LM(
-        model_name, model_type="chat", temperature=temperature, max_tokens=max_tokens
+        model_name,
+        model_type="chat",
+        temperature=temperature,
+        max_tokens=max_tokens,
     )
     dspy.configure(lm=lm)
 
-    input_dataset = DatasetSpec.from_string(input_dataset_spec_str).load()
-    output_dataset_spec = DatasetSpec.from_string(output_dataset_spec_str)
-    output_dataset_spec.save(
-        main_loop(batch_size, input_field, output_field, input_dataset)
-    )
+    input_df = pd.read_json(input_path, lines=True).to_dict(orient="records")
+    with output_path.open("w") as f:
+        for output_item in main_loop(batch_size, input_field, output_field, input_df):
+            json.dump(output_item, f)
+            f.write("\n")
 
 
 def main():
@@ -99,9 +105,15 @@ def main():
         default="prompt",
         help="The field in the output dataset that will contain the neutral problem statement.",
     )
-    parser.add_argument("input_dataset_spec_str", type=str)
-    parser.add_argument("output_dataset_spec_str", type=str)
+    parser.add_argument("input_path", type=str)
+    parser.add_argument("output_path", type=Path)
     args = parser.parse_args()
+
+    if os.environ.get("OPENAI_API_KEY") is None:
+        warnings.warn(
+            "OPENAI_API_KEY is not set. If you are not using a custom endpoint, this will cause errors."
+        )
+
     main_with_args(**vars(args))
 
 
