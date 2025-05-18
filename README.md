@@ -82,6 +82,14 @@ container in `containers/jl` for an example that is well-documented.
 See the README in the `bigcodebench_multipl` directory. for instructions on
 how to construct the benchmark.
 
+## Preliminary Results
+
+- A preliminary version of the benchmark is in this 
+  [Hugging Face Dataset](https://huggingface.co/datasets/nuprl-staging/BigCodeBench-MultiPL).
+
+- See this [Google Sheet](https://docs.google.com/spreadsheets/d/1KMcZ_sFjM5N6XoUntgIip9ZkSu-htKthlx8DUD-AG90/edit?usp=sharing)
+  for model evaluations.
+
 ## Acknowledgements
 
 This work is supported by grants from the U.S. National Science Foundation
