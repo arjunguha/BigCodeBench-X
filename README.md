@@ -2,7 +2,7 @@
 
 [BigCodeBench] is an LLM programming benchmark with complex tasks that cover
 several domains. However, every task can only be solved in Python.
-BigCodeBench-MultiPL is aprogramming language-neutral benchmark that is based on
+BigCodeBench-MultiPL is a programming language-neutral benchmark that is based on
 BigCodeBench.
 
 A goal of this project is scalability: we believe it is *very easy* to test a
