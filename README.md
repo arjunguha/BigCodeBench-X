@@ -21,7 +21,7 @@ To follow these directions, you will need:
 - The `parallel` and `jq` tools, which will be available from your Linux package
   manager.
 
-1. **Generate Completions**: We have a very simple script to generate
+1. **Generate Completions:** We have a very simple script to generate
    completions. All it  does is add "Solve this problem using *L*" to the prompt
    and then queries an LLM. For example, the following command generates
    completions for Julia using GPT-4.1-nano:
@@ -50,7 +50,7 @@ To follow these directions, you will need:
    wc -l julia.jsonl
    ```
 
-   Then run all tehse programs in parallel with the Julia container. Use the
+   Then run all these programs in parallel with the Julia container. Use the
    number of lines above for `NUM_PROBLEMS`. The flag `-j16` means that we are
    running 16 containers concurrently. You probably want ~32GB of memory and 32
    cores to run that many safely. You can adjust the `-j` flag as needed.
@@ -64,7 +64,7 @@ To follow these directions, you will need:
    If you generated programs for a different language, do ensure you use the
    appropriate container.
 
-3. **Compute Pass@1:**: This is just the fraction of programs that pass all
+3. **Compute Pass@1:** This is just the fraction of programs that pass all
    tests.
 
    ```bash
@@ -74,8 +74,16 @@ To follow these directions, you will need:
 
 ## Adding Support for a New Programming Language
 
-You should start by modifying an existing container. Look at the Julia
-container in `containers/jl` for an example that is well-documented.
+To support a new programming language, you will need to write a container that
+can run its code. However, you also need to decide what libraries should be
+available in the container. The best way to do this is to first generate
+completions for your language with some model. It may make the most sense to
+use what you think is the best model for your language. Use your text processing
+skills to extract the list of libraries that the model is trying to use. With
+that list, you can build a container that has those libraries installed.
+
+We recommend modifying an existing container. Look at the Julia container in
+`containers/jl` for an example that is well-documented.
 
 ## Constructing the Benchmark
 
