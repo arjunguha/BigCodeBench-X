@@ -13,7 +13,7 @@ def load_benchmark(benchmark: str):
     if Path(benchmark).exists():
         return pd.read_json(benchmark, lines=True).to_dict(orient="records")
     else:
-        return datasets.load_dataset(benchmark, split="test")
+        return list(datasets.load_dataset(benchmark, split="test"))
 
 
 def batches(items: Iterable, batch_size: int):
@@ -74,7 +74,7 @@ def main():
     parser.add_argument("--model", type=str, required=True)
     parser.add_argument("--benchmark", type=str, required=True)
     parser.add_argument("--lang", type=str, required=True)
-    parser.add_argument("--temperature", type=float, default=0.6)
+    parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--max-tokens", type=int, default=5000)
     parser.add_argument("--top-p", type=float, default=0.95)
     parser.add_argument("--batch-size", type=int, default=10)
