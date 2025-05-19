@@ -24,6 +24,10 @@ def main():
     # why.
     def runner(stdin_text: str):
         p = subprocess.Popen(
+            ####################################################################
+            # Change the line below for a different language.                  #
+            # Nothing else should need to change.                              #
+            ####################################################################
             ["/usr/local/julia/bin/julia", str(args.tests_path / "program.jl")],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,

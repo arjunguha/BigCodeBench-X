@@ -60,6 +60,10 @@ def main_with_args(*, timeout_seconds: int, key: str):
 
         with tempfile.TemporaryDirectory() as dir_name:
             dir = Path(dir_name)
+            ####################################################################
+            # Change the line below for a different language.                  #
+            # Nothing else should need to change.                              #
+            ####################################################################
             (dir / "program.jl").write_text(program)
             (dir / "tests.py").write_text(test_suite)
 
