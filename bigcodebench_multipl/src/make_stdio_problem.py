@@ -15,10 +15,10 @@ class TranslateProblem(dspy.Signature):
     task_func. You must:
 
     1. Update the solution to be a standalone Python program that communicates
-       using standard I/O. Try to use the existing text of the problem as much
+       using standard I/O. Try to use the existing code from task_func as much
        as possible.
-    2. Update the problem statement to clearly ask for this program instead. Try
-       to use the existing code from task_func as much as possible.
+    2. Update the problem statement to clearly ask for this program instead.
+       Try to use the existing text of the problem as much as possible.
     3. Update the test suite to be a function in the following format:
 
        ```python
