@@ -68,8 +68,7 @@ To follow these directions, you will need:
    tests.
 
    ```bash
-   jq -s '([.[] | select(.exit_code == 0)] | length) as $success | ($success * 100 / length) | "pass@1: \(.)%"' \
-       julia.results.jsonl
+   ./bin/pass1.sh julia.results.jsonl
    ```
 
 ## Adding Support for a New Programming Language
