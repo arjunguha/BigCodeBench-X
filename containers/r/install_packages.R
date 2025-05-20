@@ -1,0 +1,1 @@
+install.packages(c("quanteda", "blake3", "gridExtra", "openssl", "aTSA", "KernSmooth", "moments", "matrixStats", "Rmpfr", "randomForest", "SuppDists", "naturalsort", "sentimentr", "ggpolar", "XML", "RColorBrewer"))
