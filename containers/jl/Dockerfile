@@ -23,8 +23,8 @@ COPY libs.txt /libs.txt
 ENV JULIA_DEPOT_PATH=/julia_depot
 RUN JULIA_DEPOT_PATH=/julia_depot julia /try_install_packages.jl /libs.txt
 
-# It turns out that the Python test suites use pandas.
-RUN apt-get install -yq python3-pandas
+# It turns out that the Python test suites use these libraries.
+RUN apt-get install -yq python3-pandas python3-sklearn python3-pytest
 
 COPY entrypoint.py /entrypoint.py
 COPY driver.py /driver.py
