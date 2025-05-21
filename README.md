@@ -1,16 +1,30 @@
 # BigCodeBench-MultiPL
 
-[BigCodeBench] is an LLM programming benchmark with complex tasks that cover
-several domains. However, every task can only be solved in Python.
-BigCodeBench-MultiPL is a programming language-neutral benchmark that is based on
-BigCodeBench.
+This is a new programming benchmark for LLMs with two goals:
 
-A goal of this project is scalability: we believe it is *very easy* to test a
-new programming language with BigCodeBench-MultiPL. All you need to do is build
-a new container. Unlike [MultiPL-E], there is no need to adapt prompts or update
-the test cases. The prompts in BigCodeBench-MultiPL are already language
-neutral. Moreover, all interactions with model-generated code occurs via
-standard I/O, so we can use the same tests for every language.
+1. Support as many niche ("low-resource") programming languages as possible, such as Julia, Fortran, R, and others.
+
+   Although LLMs are remarkably good at Python and other high-resource languages, they are much worse at low-resource
+   programming languages. A high-quality benchmark is necessary to both to measure LLM capabilities and to make LLMs better.
+
+2. Make it easy to support new programming languages a wide variety of programming tasks.
+
+   Writing a good benchmark is hard, and we don't to duplicate effort for each language. Prior work,
+   such as [MultiPL-E], reduce the effort needed, but only support a small sliver of programming
+   tasks. Our goal is to reduce effort even further and support a much broader range of programming
+   tasks than MultiPL-E.
+
+## Approach
+
+We start with [BigCodeBench], which is an LLM programming benchmark with complex Python programming 
+tasks. Each task is accompanied with a reference solution and a comprehensive test suite, both in Python
+of course. We proceed in three steps:
+
+1. We prompt a reasoning model to reformulate the task, including the reference solution and test suite, to [use standard I/O and re-use as much of the existing code as possible](https://github.com/arjunguha/BigCodeBench-MultiPL/blob/main/bigcodebench_multipl/src/make_stdio_problem.py#L13). The result is a new benchmark -- still for Python -- that uses standard I/O. We can partially-validate this translation step by running the updated code. With just one attempt, using o4-mini, ~75% of the ~1,000 updated problems pass their own test suite. 
+
+2. We prompt a model to update the task description to [remove references to Python and Python terminology](https://github.com/arjunguha/BigCodeBench-MultiPL/blob/main/bigcodebench_multipl/src/make_pl_agnostic_problem.py#L22). This requires human validation, but our [preliminary work](https://gist.github.com/arjunguha/92e7d0aebbc9b61acb37ef019c97e851) indicates that gpt-4.1-mini does this task well. Notice that we do not need to update the test suite to be language specific. Since the task uses standard I/O, the tests can be in Python even if the program is in another language.
+
+3. We build containers for each niche language. We have a few already in the [containers](https://github.com/arjunguha/BigCodeBench-MultiPL/tree/main/containers) directory. The Julia container is well documented and should be a template for building other containers.
 
 ## Benchmarking a Model
 
@@ -100,9 +114,7 @@ how to construct the benchmark.
 ## Acknowledgements
 
 This work is supported by grants from the U.S. National Science Foundation
-(SES-2326173) and U.S. Department of Energy, Office of Science (DE-SC0025613).
-
-
+(SES-2326173) and the U.S. Department of Energy, Office of Science (DE-SC0025613).
 
 [BigCodeBench]: https://openreview.net/forum?id=YrycTjllL0
 [MultiPL-E]: https://ieeexplore.ieee.org/document/10103177
