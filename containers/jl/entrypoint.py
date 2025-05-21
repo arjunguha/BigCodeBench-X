@@ -25,7 +25,7 @@ import sys
 
 def error(key: str, problem, message: str):
     json.dump({ key: problem[key], "error": "JSONDecodeError", "message": message}, sys.stdout)
-    print("\n", flush=True)
+    print("", flush=True)
 
 
 def main_with_args(*, timeout_seconds: int, key: str):
