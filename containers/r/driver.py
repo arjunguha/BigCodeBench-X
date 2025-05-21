@@ -28,7 +28,7 @@ def main():
             # Change the line below for a different language.                  #
             # Nothing else should need to change.                              #
             ####################################################################
-            ["Rscript", str(args.tests_path / "program.R")],
+            ["r", str(args.tests_path / "program.R")],
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

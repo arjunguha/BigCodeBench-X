@@ -10,7 +10,7 @@ COPY install_packages.R /install_packages.R
 RUN Rscript /install_packages.R
 
 # It turns out that the Python test suites use pandas.
-RUN apt-get install -yq python3-pandas
+RUN apt-get install -yq python3-pandas python3-pytest python3-sklearn
 
 COPY entrypoint.py /entrypoint.py
 COPY driver.py /driver.py
