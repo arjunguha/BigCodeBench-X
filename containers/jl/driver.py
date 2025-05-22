@@ -1,17 +1,27 @@
+"""
+Usage: python3 driver.py TESTS_PATH
+
+This script will load the module TESTS_PATH/tests.py, which must have
+a function with this signature:
+
+def test_cases(runner: Callable):
+    assert runner(input_text) == (output_text, exit_code)
+    ...
+
+It will apply test_cases to a runner that runs Julia. So, each test,
+written in Python, is testing a Julia program.
+"""
 import argparse
 import importlib.util
 import subprocess
 import sys
 from pathlib import Path
 
-WRITE_TIMEOUT_SECONDS = 5
-READ_TIMEOUT_SECONDS = 30
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("tests_path", type=Path)
     args = parser.parse_args()
+
     tests_path = args.tests_path / "tests.py"
 
     # Cursor says that this is the right way to dynamically import a module.
@@ -19,9 +29,6 @@ def main():
     tests = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(tests)
 
-    # TODO(arjun): Hardcoding /venv/bin/python3 means this will only work in the
-    # container. But, just python3 does not work in the container. I don't know
-    # why.
     def runner(stdin_text: str):
         p = subprocess.Popen(
             ####################################################################
