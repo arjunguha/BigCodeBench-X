@@ -10,6 +10,7 @@ requires-python = ">=3.10"
 dependencies = [
     "datasets>=3.6.0",
     "dspy>=2.6.23",
+    "gradio>=5.33.0",
 ]
 
 [project.scripts]
