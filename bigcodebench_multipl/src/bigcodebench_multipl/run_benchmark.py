@@ -37,9 +37,11 @@ class SolveProblem(dspy.Signature):
     Solve the following programming problem using the programming
     language that I have specified. In addition, return the list of libraries
     that the solution uses. I will take care of installing them.
+
+    Use ONLY the programming language given below!
     """
 
-    programming_language: str = dspy.InputField()
+    programming_language: str = dspy.InputField(description="The programming language to use.")
     problem_statement: str = dspy.InputField()
     program: str = dspy.OutputField()
     libraries: List[str] = dspy.OutputField()
@@ -118,6 +120,15 @@ def run_executions(
     return [asyncio.create_task(execute(generation)) for generation in generations]
 
 
+
+# This allows us to have a consistent interface for execution after
+# generate and execution after loading.
+def immediate_future(value) -> Awaitable:
+    f = asyncio.Future()
+    f.set_result(value)
+    return f
+
+
 async def execute_with_args(
     *,
     container_name: str,
@@ -128,7 +139,7 @@ async def execute_with_args(
     generations = []
     with input_path.open("r") as f:
         for line in f:
-            generations.append(json.loads(line))
+            generations.append(immediate_future(json.loads(line)))
     execution_tasks = run_executions(
         container_name, num_concurrent_requests, generations
     )
