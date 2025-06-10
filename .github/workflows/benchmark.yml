@@ -1,0 +1,141 @@
+name: BigCodeBench-MultiPL Benchmark
+
+on:
+  workflow_dispatch:  # Allows manual triggering
+  push:
+    branches:
+      - main
+
+jobs:
+  benchmark:
+    runs-on: self-hosted
+    timeout-minutes: 360  # 6 hours timeout
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Start vLLM model server
+      id: start_model
+      run: |
+        echo "Starting vLLM model server..."
+        cd ~/repos/llm-env
+        nohup uv run vllm serve --disable-log-requests Qwen/Qwen3-8B-AWQ > vllm.log 2>&1 &
+        echo $! > vllm.pid
+        echo "Model server started with PID $(cat vllm.pid)"
+    
+    - name: Wait for model server to be ready
+      run: |
+        echo "Waiting 5 minutesfor model server to be ready..."
+        max_attempts=60  # 5 minutes (60 * 5 seconds)
+        attempt=0
+        
+        while [ $attempt -lt $max_attempts ]; do
+          if curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/v1/models | grep -q "200"; then
+            echo "Model server is ready!"
+            break
+          fi
+          sleep 5
+          attempt=$((attempt + 1))
+        done
+        
+        if [ $attempt -eq $max_attempts ]; then
+          echo "Model server failed to start."
+          exit 1
+        fi    
+    - name: Pull required containers
+      run: |
+        echo "Pulling Julia container..."
+        podman pull ghcr.io/arjunguha/bcb_multipl-jl
+        
+        echo "Pulling JavaScript container..."
+        podman pull ghcr.io/arjunguha/bcb_multipl-js
+    
+    - name: uv sync
+      working-directory: ./bigcodebench_multipl
+      run: |
+        uv sync
+    
+    - name: Set environment variables for local vLLM server
+      run: |
+        echo "OPENAI_API_BASE=http://localhost:8000/v1" >> $GITHUB_ENV
+        echo "OPENAI_API_KEY=1234567890" >> $GITHUB_ENV
+    
+    - name: Generate and execute Julia completions
+      working-directory: ./bigcodebench_multipl
+      run: |
+        echo "Running Julia benchmark..."
+        uv run python3 -m bigcodebench_multipl.run_benchmark generate \
+          --model-name openai/Qwen/Qwen3-8B-AWQ \
+          --temperature 0.2 \
+          --num-concurrent-requests 30 \
+          --max-tokens 2000 \
+          --lang "Julia 1.11 /nothink" \
+          --container-name "ghcr.io/arjunguha/bcb_multipl-jl" \
+          --output-path ../julia_results.jsonl
+    
+    - name: Generate and execute JavaScript completions
+      working-directory: ./bigcodebench_multipl
+      run: |
+        echo "Running JavaScript benchmark..."
+        uv run python3 -m bigcodebench_multipl.run_benchmark generate \
+          --model-name openai/Qwen/Qwen3-8B-AWQ \
+          --temperature 0.2 \
+          --num-concurrent-requests 30 \
+          --max-tokens 2000 \
+          --lang "JavaScript using Node 24 /nothink" \
+          --container-name "ghcr.io/arjunguha/bcb_multipl-js" \
+          --output-path ../js_results.jsonl
+    
+    - name: Compute Pass@1 scores
+      run: |
+        echo "Computing Julia Pass@1 score..."
+        ./bin/pass1.sh julia_results.jsonl > julia_pass1.txt
+        
+        echo "Computing JavaScript Pass@1 score..."
+        ./bin/pass1.sh js_results.jsonl > js_pass1.txt
+        
+        echo "Julia Pass@1 Results:"
+        cat julia_pass1.txt
+        
+        echo "JavaScript Pass@1 Results:"
+        cat js_pass1.txt
+    
+    - name: Upload Julia results
+      uses: actions/upload-artifact@v4
+      with:
+        name: julia-benchmark-results
+        path: |
+          julia_results.jsonl
+          julia_pass1.txt
+        retention-days: 30
+    
+    - name: Upload JavaScript results
+      uses: actions/upload-artifact@v4
+      with:
+        name: javascript-benchmark-results
+        path: |
+          js_results.jsonl
+          js_pass1.txt
+        retention-days: 30
+    
+    - name: Cleanup
+      if: always()
+      run: |
+        # Stop the vLLM model server
+        if [ -f ~/repos/llm-env/vllm.pid ]; then
+          PID=$(cat ~/repos/llm-env/vllm.pid)
+          if kill -0 $PID 2>/dev/null; then
+            echo "Stopping vLLM model server (PID: $PID)..."
+            kill $PID
+            sleep 5
+            # Force kill if still running
+            if kill -0 $PID 2>/dev/null; then
+              kill -9 $PID
+            fi
+          fi
+          rm -f ~/repos/llm-env/vllm.pid
+        fi
+        
+        # Clean up any hanging processes
+        pkill -f "vllm serve" || true 
