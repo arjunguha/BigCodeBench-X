@@ -24,8 +24,6 @@ RUN /try_npm_install.sh jimp plotly geolib fft-js plotly.js-dist \
 COPY entrypoint.py /entrypoint.py
 COPY driver.py /driver.py
 
-RUN cat /install_log.txt
-
 WORKDIR /root
 
 ENTRYPOINT ["/usr/bin/python3", "/entrypoint.py"]

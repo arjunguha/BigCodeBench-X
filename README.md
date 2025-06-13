@@ -32,57 +32,40 @@ To follow these directions, you will need:
 
 - Docker or Podman to run containers.
 - A Python environment with `tqdm`, `datasets`, and `litellm` installed.
-- The `parallel` and `jq` tools, which will be available from your Linux package
+- The `jq` tool, which will be available from your Linux package
   manager.
 
-1. **Generate Completions:** We have a very simple script to generate
-   completions. All it  does is add "Solve this problem using *L*" to the prompt
-   and then queries an LLM. For example, the following command generates
-   completions for Julia using GPT-4.1-nano:
+1. **Generate and Execute Completions:** Our benchmark execution script
+   will generate completions with the LLM and execute the generated code in
+   a container. For example, the following command benchmarks JavaScript:
 
-   ```bash
-   python3 bigcodebench_multipl/src/completions.py \
-       --batch-size 50 \
-       --model openai/gpt-4.1-nano \
-       --benchmark nuprl-staging/BigCodeBench-MultiPL \
-       --lang "Julia" \
-       --output-path julia.jsonl
    ```
+   python3 -m bigcodebench_multipl.run_benchmark generate \
+       --model-name openai/gpt-4.1-nano \
+       --temperature 0.2 \
+       --num-concurrent-requests 50 \
+       --max-tokens 2000 \
+       --lang "JavaScript using Node 24" \
+       --container-name "ghcr.io/arjunguha/bcb_multipl-js" \
+       --output-path js.jsonl
+   ```
+
+   This assumes that you can run 50 containers concurrently. If you have
+   fewer cores, you can reduce the number of concurrent requests.
+
+   Notice that we use *JavaScript using Node 24* as the language. This is the
+   version of Node that is installed in the container. It is important to convey
+   this information to the model, since JavaScript on the web is quite different
+   from server-side JavaScript.
    
    The output JSONL file has a field called `program` with model-generated
-   Julia code. There is also a field called `response` with the complete response
-   from the model, from which we extract the program.
+   JavaScript code.
 
-   *NOTE*: If you want to use your own code to generate completions, each output
-   line must have the fields `task_id` and `test_suite` from the benchmark,
-   and a new field called `program`  with the model-generated code.
-
-2. **Test Generated Code:** The next step is to test the model-generated code
-   using the language-specific container. First, check how many programs you have:
-
-   ```bash
-   wc -l julia.jsonl
-   ```
-
-   Then run all these programs in parallel with the Julia container. Use the
-   number of lines above for `NUM_PROBLEMS`. The flag `-j16` means that we are
-   running 16 containers concurrently. You probably want ~32GB of memory and 32
-   cores to run that many safely. You can adjust the `-j` flag as needed.
-
-   ```bash
-   parallel --bar -j16 \
-       ./containers/py/job.sh julia.jsonl \
-       ::: $(seq $NUM_PROBLEMS) > julia.results.jsonl
-   ```
-
-   If you generated programs for a different language, do ensure you use the
-   appropriate container.
-
-3. **Compute Pass@1:** This is just the fraction of programs that pass all
+2. **Compute Pass@1:** This is just the fraction of programs that pass all
    tests.
 
    ```bash
-   ./bin/pass1.sh julia.results.jsonl
+   ./bin/pass1.sh js.jsonl
    ```
 
 ## Adding Support for a New Programming Language
