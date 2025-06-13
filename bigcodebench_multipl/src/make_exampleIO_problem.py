@@ -12,14 +12,14 @@ class ExampleIO(dspy.Signature):
     """
     You will be given a problem statement, a standalone reference (gold) Python solution that communicates via standard input/output, and a corresponding test suite.
 
-    Your task is to generate a nontrivial example input-output pair that illustrates the expected behavior of the program. This example will be added to the problem statement as a demonstration of the input and output format.
+    Your task is to generate an example input-output pair that illustrates the expected behavior of the program. This example will be added to the problem statement as a demonstration of the input and output format.
 
     Guidelines:
-    - The example must follow the input and output format exactly as described in the problem prompt.
-    - The example must not duplicate any test cases in the provided test suite.
-    - The example must be compatible with the provided solution — running the solution on the example input should produce the example output. 
-    - For programs that uses random library with a set seed, the example output should correspond to using that seed. For programs where random library is used without setting a seed, use seed(0) to ensure reproducibility.
-
+    - Your example input and output must strictly follow the input/output format described in the problem prompt.
+    - Your example must be compatible with the provided solution — running the solution on your example input should produce the exact example output.
+    - If possible, base your example on one of the provided test cases, and make any necessary adjustments to synthesize a valid input and its corresponding correct output.
+    - For programs that use the random library with a fixed seed, the output should reflect the result of using that seed. For programs that use random without setting a seed, assume random.seed(0) to ensure reproducibility.
+    
     Format your example as it would appear in an interactive terminal session: place each input line on its own line, and do the same for each output line.
     """
 
@@ -47,13 +47,14 @@ def prepare_dataset(
 def generate_test_case(example_input: str, example_output: str) -> str:
     # Escape backslashes and quotes for safety
     escaped_input = repr(example_input)
-    example_output_with_newline = example_output if example_output.endswith('\n') else example_output + '\n'
-    escaped_output = repr(example_output_with_newline)
+    example_output_without_newline = example_output.rstrip()
+    escaped_output = repr(example_output_without_newline)
     
     return f"""def test_cases(prog):
     stdin = {escaped_input}
     stdout, exit_code = prog(stdin)
-    assert stdout == {escaped_output}, f"Got {{stdout}}"
+    stdout = stdout.rstrip()
+    assert stdout == {escaped_output}, f"Got {{repr(stdout)}}"
     assert exit_code == 0
 """
 
@@ -69,7 +70,7 @@ def main_with_args(
 ):  
     lm = dspy.LM("openai/qwen3_8b_awq",
                  api_base="http://10.200.111.102:4000/v1",
-                 api_key="dummy")
+                 api_key="dummy",cache=False)
     # lm = dspy.LM(model=model)
     # lm = dspy.LM(
     #     model_name, model_type="chat", temperature=temperature, max_tokens=max_tokens
