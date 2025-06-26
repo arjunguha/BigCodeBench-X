@@ -1,0 +1,77 @@
+# Extended standard library
+golang.org/x/crypto
+golang.org/x/text
+golang.org/x/net
+golang.org/x/sys
+golang.org/x/image
+
+# JSON processing
+github.com/tidwall/gjson
+github.com/tidwall/sjson
+github.com/json-iterator/go
+
+# CSV processing
+github.com/gocarina/gocsv
+
+# Math and statistics
+github.com/montanaflynn/stats
+gonum.org/v1/gonum/stat
+gonum.org/v1/gonum/mat
+
+# Text processing
+github.com/kljensen/snowball
+
+# Compression
+github.com/klauspost/compress
+github.com/ulikunitz/xz
+
+# Excel processing
+github.com/xuri/excelize/v2
+
+# Search and indexing
+github.com/blevesearch/bleve/v2
+
+# Charts and plotting
+github.com/wcharczuk/go-chart/v2
+gonum.org/v1/plot
+
+# Time handling
+github.com/jinzhu/now
+
+# HTML parsing
+github.com/PuerkitoBio/goquery
+
+# Geometry
+github.com/paulmach/orb
+
+# Image processing
+github.com/disintegration/imaging
+
+# Data formats
+gopkg.in/yaml.v3
+github.com/BurntSushi/toml
+
+# UUID and utilities
+github.com/google/uuid
+github.com/shopspring/decimal
+
+# Testing utilities
+github.com/stretchr/testify
+
+# File utilities
+github.com/spf13/afero
+
+# HTTP client
+github.com/go-resty/resty/v2
+
+# Configuration
+github.com/spf13/viper
+
+# Logging
+github.com/sirupsen/logrus
+
+# PDF processing
+github.com/jung-kurt/gofpdf
+
+# Archive processing
+github.com/mholt/archiver/v3
