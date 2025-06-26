@@ -86,7 +86,20 @@ jobs:
           --lang "JavaScript using Node 24 /nothink" \
           --container-name "ghcr.io/arjunguha/bcb_multipl-js" \
           --output-path ../js_results.jsonl
-    
+
+    - name: Generate and execute Go completions
+      working-directory: ./bigcodebench_multipl
+      run: |
+        echo "Running Go benchmark..."
+        uv run python3 -m bigcodebench_multipl.run_benchmark generate \
+          --model-name openai/Qwen/Qwen3-8B-AWQ \
+          --temperature 0.2 \
+          --num-concurrent-requests 30 \
+          --max-tokens 2000 \
+          --lang "Go 1.23 /nothink" \
+          --container-name "ghcr.io/shubhamugare/bcb_multipl-go" \
+          --output-path ../go_results.jsonl
+
     - name: Compute Pass@1 scores
       run: |
         echo "Computing Julia Pass@1 score..."
@@ -100,25 +113,26 @@ jobs:
         
         echo "JavaScript Pass@1 Results:"
         cat js_pass1.txt
+
+        echo "Computing Go Pass@1 score..."
+        ./bin/pass1.sh go_results.jsonl > go_pass1.txt
+
+        echo "Go Pass@1 Results:"
+        cat go_pass1.txt
     
-    - name: Upload Julia results
+    - name: Upload results
       uses: actions/upload-artifact@v4
       with:
-        name: julia-benchmark-results
+        name: benchmark-results
         path: |
           julia_results.jsonl
           julia_pass1.txt
-        retention-days: 30
-    
-    - name: Upload JavaScript results
-      uses: actions/upload-artifact@v4
-      with:
-        name: javascript-benchmark-results
-        path: |
           js_results.jsonl
           js_pass1.txt
+          go_results.jsonl
+          go_pass1.txt
         retention-days: 30
-    
+
     - name: Cleanup
       if: always()
       run: |
