@@ -1,4 +1,4 @@
-FROM golang:1.23-bullseye
+FROM docker.io/golang:1.23-bullseye
 
 # Update package list and install Python dependencies
 RUN apt-get update -q
