@@ -119,7 +119,7 @@ class Retries(dspy.Module):
         self._threshold = threshold
     
     async def aforward(self, **kwargs) -> dspy.Prediction:
-        for i in range(self._max_retries):
+        for i in range(self._max_retries+1):
             result = await self._module.acall(**kwargs)
             reward = self._reward_fn(result)
             if reward >= self._threshold:
@@ -169,7 +169,7 @@ async def main_async(args):
 
     module = Retries(
         module=ExampleWithVerification(),
-        max_retries=5,
+        max_retries=args.max_retries,
         reward_fn=reward,
         threshold=1.0
     )
@@ -210,6 +210,7 @@ def main():
     parser.add_argument("--limit", type=int, default=None, help="Limit the number of problems to process")
     parser.add_argument("--max-tokens", type=int, default=5000)
     parser.add_argument("--output-path", type=Path, required=True)
+    parser.add_argument("--max-retries", type=int, default=0)
     args = parser.parse_args()
     asyncio.run(main_async(args))
 
