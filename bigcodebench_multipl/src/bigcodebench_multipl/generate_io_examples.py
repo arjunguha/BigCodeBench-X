@@ -17,9 +17,9 @@ class ExampleIO(dspy.Signature):
     Your task is to generate an example input-output pair that illustrates the expected behavior of the program. This example will be added to the problem statement as a demonstration of the input and output format.
 
     Guidelines:
+    - Try to create an example based on the test suite provided.
     - Your example input and output must strictly follow the input/output format described in the problem prompt.
     - Your example must be compatible with the provided solution — running the solution on your example input should produce the exact example output.
-    - If possible, base your example on one of the provided test cases, and make any necessary adjustments to synthesize a valid input and its corresponding correct output.
     - For programs that use the random library with a fixed seed, the output should reflect the result of using that seed. For programs that use random without setting a seed, assume random.seed(0) to ensure reproducibility.
     
     Format your example as it would appear in an interactive terminal session: place each input line on its own line, and do the same for each output line.
@@ -28,7 +28,7 @@ class ExampleIO(dspy.Signature):
     original_program: str = dspy.InputField()
     original_test_suite: str = dspy.InputField()
     example_input: str = dspy.OutputField()
-    example_output: str = dspy.OutputField()
+    example_output: str = dspy.OutputField(description="The verbatim output the program will produce on example_input")
 
 # Prepare DSPy Examples
 def prepare_dataset(dataset: Iterable[BigCodeBenchProblem]) -> List[dspy.Example]:
@@ -212,7 +212,7 @@ async def main_async(num_concurrent: int, model_name: str, temperature: float, l
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--num-concurrent", type=int, default=50)
-    parser.add_argument("--model-name", type=str, default="openai/qwen3_8b_awq")
+    parser.add_argument("--model-name", type=str, required=True)
     parser.add_argument("--temperature", type=float, default=1.0)
     parser.add_argument("--limit", type=int, default=None, help="Limit the number of problems to process")
     parser.add_argument("--max-tokens", type=int, default=5000)

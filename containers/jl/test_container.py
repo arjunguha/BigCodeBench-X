@@ -36,7 +36,7 @@ infinite_loop()
 
 def run_container(program, test_suite):
     """Run the container with the given program and test suite."""
-    input_data = json.dumps({"program": program, "test_suite": test_suite})
+    input_data = json.dumps({"task_id": 0, "program": program, "test_suite": test_suite})
 
     result = subprocess.run(
         ["docker", "run", "--rm", "-i", CONTAINER_NAME],
