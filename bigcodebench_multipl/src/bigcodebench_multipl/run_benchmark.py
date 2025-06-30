@@ -41,7 +41,9 @@ class SolveProblem(dspy.Signature):
     Use ONLY the programming language given below!
     """
 
-    programming_language: str = dspy.InputField(description="The programming language to use.")
+    programming_language: str = dspy.InputField(
+        description="The programming language to use."
+    )
     problem_statement: str = dspy.InputField()
     program: str = dspy.OutputField()
     libraries: List[str] = dspy.OutputField()
@@ -53,7 +55,43 @@ class Problem(TypedDict):
     test_suite: str
 
 
-solve_problem = dspy.ChainOfThought(SolveProblem)
+class SolveProblemFixup(dspy.Module):
+    """
+    Wrapper around SolveProblem that maps dataset field names to the field names
+    that SolveProblem expects.
+    """
+
+    def __init__(self):
+        self.solve_problem = dspy.ChainOfThought(SolveProblem)
+
+    # We ignore a couple of arguments:
+    # - program: the Python reference solution
+    # - task_id: the task ID
+    # - test_suite: the test suite
+    async def aforward(
+        self, lang: str, prompt: str, program: str, task_id: str, test_suite: str
+    ) -> SolveProblem:
+        try:
+            result = await self.solve_problem.aforward(
+                programming_language=lang,
+                problem_statement=prompt,
+            )
+        except Exception as e:
+            return {
+                "program": "",
+                "libraries": [],
+                "reasoning": f"Generation failed\n\n{str(e)}",
+            }
+        return {
+            "program": extract_code_from_markdown(result.program),
+            "libraries": result.libraries,
+            # The chain-of-thought from the model. This may help analyze
+            # model errors.
+            "reasoning": result.reasoning,
+        }
+
+
+solve_problem = SolveProblemFixup()
 
 
 async def save_output(output_path: Path, generations: List[Awaitable[dict]]):
@@ -118,7 +156,6 @@ def run_executions(
             }
 
     return [asyncio.create_task(execute(generation)) for generation in generations]
-
 
 
 # This allows us to have a consistent interface for execution after
@@ -190,28 +227,8 @@ async def generate_with_args(
     async def generate(problem: Problem):
         async with model_semaphore:
             pbar.update(1)
-            try:
-                result = await solve_problem.aforward(
-                    programming_language=lang,
-                    problem_statement=problem["prompt"],
-                )
-                return {
-                    **problem,
-                    **metadata,
-                    "program": extract_code_from_markdown(result.program),
-                    "libraries": result.libraries,
-                    # The chain-of-thought from the model. This may help analyze
-                    # model errors.
-                    "reasoning": result.reasoning,
-                }
-            except Exception as e:
-                return {
-                    **problem,
-                    **metadata,
-                    "program": "",
-                    "libraries": [],
-                    "reasoning": f"Generation failed\n\n{str(e)}",
-                }
+            result = await solve_problem.aforward(lang=lang, **problem)
+            return {**problem, **metadata, **result}
 
     # All generations run in parallel, but the semaphore ensures that we do not
     # exceed the number of concurrent requests.
