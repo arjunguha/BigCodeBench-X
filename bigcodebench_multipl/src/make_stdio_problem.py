@@ -1,3 +1,7 @@
+"""
+See the signature for TranslateProblem. That is what this script does, with
+a litte extra code to apply it to BigCodeBench problems.
+"""
 import dspy
 from typing import Iterable, List, Optional
 from bcb_reader import BigCodeBenchProblem, load_bigcodebench
