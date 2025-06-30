@@ -5,9 +5,8 @@ import argparse
 from pathlib import Path
 from typing import Optional, Callable, Iterable, List
 from bcb_reader import BigCodeBenchProblem
-from dspy_util import incremental_parallel
 from datasets import load_dataset
-from bounded_subprocess.interactive_async import Interactive
+from bounded_subprocess.bounded_subprocess_async import run
 from tqdm import tqdm
 
 # DSPy Signature
@@ -91,17 +90,27 @@ class ExampleWithVerification(dspy.Module):
             )
 
     async def _run_in_container(self, task_id:str, program: str, test_suite: str) -> dict:
-        proc = Interactive([
-            "podman", "run", "-i", "--rm", "--network", "none", "--cpus", "2",
-            "ghcr.io/arjunguha/bcb_multipl-py"],read_buffer_size=10 * 1024
-        )
         stdin_text = json.dumps({"task_id":task_id,"program": program, "test_suite": test_suite})
-        await proc.write(stdin_text.encode("utf-8"), timeout_seconds=10)
-        await proc.write(b"\n", timeout_seconds=2)
-        stdout_bytes = await proc.read_line(timeout_seconds=10)
-        exit_code = await proc.close(nice_timeout_seconds=5)
+        result = await run([
+            "podman", "run", "-i", "--rm", "--network", "none", "--cpus", "2",
+            "ghcr.io/arjunguha/bcb_multipl-py"],
+            stdin_data=stdin_text,
+            max_output_size=10 * 1024,
+            timeout_seconds=10
+        )
+
+        # Indicates that the driver program failed, which should not happen.
+        if result.exit_code != 0:
+            return {
+                "exit_code": result.exit_code,
+                "timeout": False,
+                "stdout": result.stdout,
+                "stderr": result.stderr
+            }
+        
+        # We did not get valid JSON from the driver, which should not happen.
         try:
-            return json.loads(stdout_bytes.decode("utf-8"))
+            return json.loads(result.stdout)
         except Exception as e:
             return {
                 "exit_code": 1,
@@ -147,15 +156,13 @@ def load_completed_task_ids(output_path: Path) -> set:
 
 
 # Main driver
-async def main_async(args):
-    lm = dspy.LM("openai/qwen3_8b_awq",
-                 api_base="http://10.200.111.102:4000/v1",
-                 api_key="dummy",cache=False, temperature=args.temperature,max_tokens=args.max_tokens)
+async def main_async(num_concurrent: int, model_name: str, temperature: float, limit: int, max_tokens: int, output_path: Path, max_retries: int):
+    lm = dspy.LM(model_name, cache=False, temperature=temperature,max_tokens=max_tokens)
     dspy.configure(lm=lm)
 
     problems = load_dataset("nuprl-staging/BigCodeBench-MultiPL")["test"].to_list()
-    problems = problems[:args.limit] if args.limit else problems
-    completed_ids = load_completed_task_ids(args.output_path)
+    problems = problems[:limit] if limit else problems
+    completed_ids = load_completed_task_ids(output_path)
 
     # Filter dataset
     filtered_problems = [p for p in problems if p["task_id"] not in completed_ids]
@@ -169,12 +176,12 @@ async def main_async(args):
 
     module = Retries(
         module=ExampleWithVerification(),
-        max_retries=args.max_retries,
+        max_retries=max_retries,
         reward_fn=reward,
         threshold=1.0
     )
 
-    sema = asyncio.Semaphore(args.num_concurrent)
+    sema = asyncio.Semaphore(num_concurrent)
 
     async def do_task(problem, example):
         async with sema:
@@ -195,7 +202,7 @@ async def main_async(args):
             }
         
     tasks = [asyncio.create_task(do_task(problem, example)) for problem, example in zip(problems, inputs)]
-    with args.output_path.open("a") as f:
+    with output_path.open("a") as f:
         for task in tqdm(asyncio.as_completed(tasks), total=len(tasks), desc="Generating"):
             record = await task
             json.dump(record, f)
@@ -212,7 +219,7 @@ def main():
     parser.add_argument("--output-path", type=Path, required=True)
     parser.add_argument("--max-retries", type=int, default=0)
     args = parser.parse_args()
-    asyncio.run(main_async(args))
+    asyncio.run(main_async(**vars(args)))
 
 if __name__ == "__main__":
     main()
