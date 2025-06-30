@@ -52,7 +52,7 @@ be an intermediate step before making BigCodeBench language agnostic.
 
    ```bash
    parallel --bar -j16 \
-       ../containers/py/job.sh unfiltered_stdio.jsonl \
+       ./bin/py_job.sh unfiltered_stdio.jsonl \
        ::: $(seq NUM_PROBLEMS) > unfiltered_stdio.results.jsonl
    ```
 
