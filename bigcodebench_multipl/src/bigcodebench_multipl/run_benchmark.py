@@ -30,6 +30,7 @@ import argparse
 import asyncio
 from pathlib import Path
 from tqdm.auto import tqdm
+import pandas as pd
 
 
 class SolveProblem(dspy.Signature):
@@ -45,6 +46,26 @@ class SolveProblem(dspy.Signature):
         description="The programming language to use."
     )
     problem_statement: str = dspy.InputField()
+    program: str = dspy.OutputField()
+    libraries: List[str] = dspy.OutputField()
+
+
+class SolveProblemWithExample(dspy.Signature):
+    """
+    Solve the following programming problem using the programming
+    language that I have specified. In addition, return the list of libraries
+    that the solution uses. I will take care of installing them. I have provided
+    an example input and output that the program must support.
+
+    Use ONLY the programming language given below!
+    """
+
+    programming_language: str = dspy.InputField(
+        description="The programming language to use."
+    )
+    problem_statement: str = dspy.InputField()
+    example_input: str = dspy.InputField()
+    example_output: str = dspy.InputField()
     program: str = dspy.OutputField()
     libraries: List[str] = dspy.OutputField()
 
@@ -92,6 +113,85 @@ class SolveProblemFixup(dspy.Module):
 
 
 solve_problem = SolveProblemFixup()
+
+
+class SolveProblemWithExampleFixup(dspy.Module):
+    """
+    Wrapper that optionally uses SolveProblemWithExample when the
+    example_input and example_output are not None.
+    """
+
+    def __init__(self):
+        self.solve_problem_with_example = dspy.ChainOfThought(SolveProblemWithExample)
+
+    async def aforward(
+        self,
+        lang: str,
+        prompt: str,
+        example_input: Optional[str],
+        example_output: Optional[str],
+        program: str,
+        task_id: str,
+        test_suite: str,
+    ) -> SolveProblem:
+        if example_input is None or example_output is None:
+            return await solve_problem.aforward(
+                lang=lang,
+                prompt=prompt,
+                program=program,
+                task_id=task_id,
+                test_suite=test_suite,
+            )
+
+        try:
+            result = await self.solve_problem_with_example.aforward(
+                programming_language=lang,
+                problem_statement=prompt,
+                example_input=example_input,
+                example_output=example_output,
+            )
+        except Exception as e:
+            return {
+                "program": "",
+                "libraries": [],
+                "reasoning": f"Generation failed\n\n{str(e)}",
+            }
+        return {
+            "program": extract_code_from_markdown(result.program),
+            "libraries": result.libraries,
+            # The chain-of-thought from the model. This may help analyze
+            # model errors.
+            "reasoning": result.reasoning,
+        }
+
+
+solve_problem_with_example = SolveProblemWithExampleFixup()
+
+
+def prepare_dataset(variation: str):
+    if variation == "no-examples":
+        return list(
+            datasets.load_dataset(
+                "nuprl-staging/BigCodeBench-MultiPL", "default", split="test"
+            )
+        )
+    elif variation == "with-examples":
+        examples = datasets.load_dataset(
+            "nuprl-staging/BigCodeBench-MultiPL", "io_examples", split="test"
+        )
+        problems = datasets.load_dataset(
+            "nuprl-staging/BigCodeBench-MultiPL", "default", split="test"
+        )
+        examples_df = examples.to_pandas()
+        examples_df = examples_df.drop_duplicates(subset="task_id", keep="first")
+        examples_df = examples_df[examples_df["exit_code"] == 0]
+        examples_df = examples_df[["task_id", "example_input", "example_output"]]
+        problems_df = problems.to_pandas()
+        merged_df = problems_df.merge(examples_df, on="task_id", how="left")
+        merged_df = merged_df.where(pd.notnull(merged_df), None)
+        return merged_df.to_dict(orient="records")
+    else:
+        raise ValueError(f"Invalid variation: {variation}")
 
 
 async def save_output(output_path: Path, generations: List[Awaitable[dict]]):
@@ -192,6 +292,7 @@ async def generate_with_args(
     lang: str,
     container_name: Optional[str],
     output_path: Path,
+    variation: str,
 ):
     lm = dspy.LM(
         model_name,
@@ -216,18 +317,19 @@ async def generate_with_args(
         "container_name": container_name,
     }
 
-    problems = list(
-        datasets.load_dataset(
-            "nuprl-staging/BigCodeBench-MultiPL", "default", split="test"
-        )
-    )
+    problems = prepare_dataset(variation)
 
     pbar = tqdm(total=len(problems), desc="Generating")
 
     async def generate(problem: Problem):
         async with model_semaphore:
             pbar.update(1)
-            result = await solve_problem.aforward(lang=lang, **problem)
+            if variation == "no-examples":
+                result = await solve_problem.aforward(lang=lang, **problem)
+            elif variation == "with-examples":
+                result = await solve_problem_with_example.aforward(lang=lang, **problem)
+            else:
+                raise ValueError(f"Invalid variation: {variation}")
             return {**problem, **metadata, **result}
 
     # All generations run in parallel, but the semaphore ensures that we do not
@@ -285,6 +387,12 @@ async def main():
     execute_parser.add_argument("--num-concurrent-requests", type=int, default=20)
     execute_parser.add_argument("--input-path", type=Path, required=True)
     execute_parser.add_argument("--output-path", type=Path, required=True)
+    generate_parser.add_argument(
+        "--variation",
+        choices=["no-examples", "with-examples"],
+        required=False,
+        default="no-examples",
+    )
 
     args = parser.parse_args()
 
